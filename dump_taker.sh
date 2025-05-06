@@ -12,7 +12,8 @@ error_exit() {
 }
 
 echo "======================"
-echo "🧠 DUMP-BOT SCRIPT"
+echo "DUMP-BOT SCRIPT"
+echo "ABA JAADU HUNXA HAII"
 echo "======================"
 echo ""
 
