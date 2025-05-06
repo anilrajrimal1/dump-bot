@@ -5,7 +5,7 @@
 > [!IMPORTANT]  
 > Go through README properly
 > And yes DO TRY 5 TIMES **BEFORE USING IN PRODUCTION**
-> Baaki *BHAGAWAN* ko haat ma :laugh
+> Baaki *BHAGAWAN* ko haat ma 😛
 
 ## Features
 
@@ -24,7 +24,7 @@
 ```bash
 bash <(curl -s https://dump.anilrajrimal.com.np)
 ```
-> Follow the steps as in examples below
+> Follow the steps as in examples below.
 
 ## Requirements
 
