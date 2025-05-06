@@ -22,7 +22,7 @@
 ### 1. Run via `curl`
 
 ```bash
-bash <(curl -s https://dump.anilrajrimal.com.np)
+bash <(curl -s https://anilrajrimal.com.np/dump-bot)
 ```
 > Follow the steps as in examples below.
 
