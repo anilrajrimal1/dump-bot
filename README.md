@@ -24,12 +24,7 @@
 ```bash
 bash <(curl -s https://dump.anilrajrimal.com.np)
 ```
-
-> Make sure the script is accessible and executable on your host system.
-
-> [!WARNING]
-> Make sure you use correct db names, 
-> And keep in mind, it do **CLEAN Installation**
+> Follow the steps as in examples below
 
 ## Requirements
 
@@ -37,6 +32,10 @@ bash <(curl -s https://dump.anilrajrimal.com.np)
 - Bash shell (Linux/macOS).
 - Access to the running PostgreSQL or MongoDB containers.
 - Proper credentials to access the databases.
+
+> [!WARNING]
+> Make sure you use correct db names, 
+> And keep in mind, it performs **CLEAN Installation**
 
 ## Example Prompts
 
