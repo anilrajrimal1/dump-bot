@@ -47,21 +47,21 @@ elif [[ "$pg_action" == "restore" ]]; then
   [[ -f "$pg_dump_file" ]] || error_exit "Dump file not found at $pg_dump_file"
 
   log "Checking for existing PostgreSQL database..."
-  db_exists=$(docker exec -i "$pg_container" psql -U "$pg_user" -tAc "SELECT 1 FROM pg_database WHERE datname='$pg_db';")
+  db_exists=$(docker exec -i "$pg_container" psql -U "$pg_user" -tAc "SELECT 1 FROM pg_database WHERE datname='${pg_db}';")
 
   if [[ "$db_exists" == "1" ]]; then
-    log "Database $pg_db exists. Terminating connections..."
+    log "Database ${pg_db} exists. Terminating connections..."
     docker exec -i "$pg_container" psql -U "$pg_user" -c \
-      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$pg_db';"
+      "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${pg_db}';"
 
-    log "Dropping database $pg_db..."
-    docker exec -i "$pg_container" psql -U "$pg_user" -c "DROP DATABASE IF EXISTS $pg_db;" || error_exit "Failed to drop database"
+    log "Dropping database \"${pg_db}\"..."
+    docker exec -i "$pg_container" psql -U "$pg_user" -c "DROP DATABASE IF EXISTS \"${pg_db}\";" || error_exit "Failed to drop database"
   else
-    log "Database $pg_db does not exist. Skipping drop."
+    log "Database ${pg_db} does not exist. Skipping drop."
   fi
 
-  log "Creating database $pg_db..."
-  docker exec -i "$pg_container" psql -U "$pg_user" -c "CREATE DATABASE $pg_db;" || error_exit "Failed to create database"
+  log "Creating database \"${pg_db}\"..."
+  docker exec -i "$pg_container" psql -U "$pg_user" -c "CREATE DATABASE \"${pg_db}\";" || error_exit "Failed to create database"
 
   log "Restoring PostgreSQL dump from $pg_dump_file..."
   if cat "$pg_dump_file" | docker exec -i "$pg_container" psql -U "$pg_user" -d "$pg_db"; then
@@ -107,12 +107,13 @@ elif [[ "$mongo_action" == "restore" ]]; then
 
   [[ -f "$mongo_dump_file" ]] || error_exit "Dump file xaina at $mongo_dump_file"
 
-  log "Authenticating and dropping MongoDB database..."
-  if docker exec -i "$mongo_container" mongo --username "$mongo_user" --password "$mongo_pass" --authenticationDatabase admin \
-    --eval "db = db.getSiblingDB('$mongo_db'); db.dropDatabase();" > /dev/null; then
-    log "Dropped MongoDB database: $mongo_db"
+  log "Authenticating to MongoDB and checking DB existence..."
+  if docker exec -i "$mongo_container" mongo admin --username "$mongo_user" --password "$mongo_pass" --eval "db.getMongo().getDBNames().includes('$mongo_db')" | grep -q true; then
+    log "MongoDB database $mongo_db exists. Dropping it..."
+    docker exec -i "$mongo_container" mongo "$mongo_db" --username "$mongo_user" --password "$mongo_pass" --authenticationDatabase admin \
+      --eval "db.dropDatabase();" || error_exit "Failed to drop MongoDB database"
   else
-    error_exit "Failed to drop MongoDB database"
+    log "MongoDB database $mongo_db does not exist. Skipping drop."
   fi
 
   log "Copying dump file into container..."
