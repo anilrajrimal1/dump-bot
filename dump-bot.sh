@@ -1,6 +1,14 @@
 #!/bin/bash
 
+# Set erase character for terminals
+if [ -t 0 ]; then
+  stty erase ^H
+fi
+
 set -euo pipefail
+
+# Trap Ctrl+C
+trap 'error_exit "Script interrupted."' INT
 
 log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
@@ -11,39 +19,53 @@ error_exit() {
   exit 1
 }
 
+start_time=$(date +%s)
+
 echo "======================"
 echo "DUMP-BOT SCRIPT"
-echo "ABA JAADU HUNXA HAII"
+echo "MAGIC STARTED !!"
 echo "======================"
 echo ""
 
 # ------------------- POSTGRESQL SECTION -------------------
-echo "PostgreSQL: Do you want to (backup/restore/none)?"
-read -r pg_action
+while true; do
+  echo "PostgreSQL: Do you want to (backup/restore/none)?"
+  read -er pg_action
+  pg_action=$(echo "$pg_action" | tr '[:upper:]' '[:lower:]')
+
+  case "$pg_action" in
+    backup|restore|none)
+      break
+      ;;
+    *)
+      echo "INVALID INPUT !!: '$pg_action'. Must be 'backup', 'restore', or 'none'. Please try again."
+      ;;
+  esac
+done
 
 if [[ "$pg_action" == "backup" ]]; then
-  read -rp "Container name/ID: " pg_container
-  read -rp "Postgres user [default: postgres]: " pg_user
+  read -erp "Container name/ID: " pg_container
+  read -erp "Postgres user [default: postgres]: " pg_user
   pg_user=${pg_user:-postgres}
-  read -rp "Postgres DB name: " pg_db
-  read -rp "Dump file name [default: postgres-${pg_db}.sql]: " pg_file
+  read -erp "Postgres DB name: " pg_db
+  read -erp "Dump file name [default: postgres-${pg_db}.sql]: " pg_file
   pg_file=${pg_file:-postgres-${pg_db}.sql}
-  read -rp "Dump path (save location): " pg_path
+  read -erp "Dump path (save location): " pg_path
 
   mkdir -p "$pg_path" || error_exit "Failed to create directory $pg_path"
   log "Starting PostgreSQL backup..."
   if docker exec -i "$pg_container" pg_dump -U "$pg_user" -d "$pg_db" > "${pg_path}/${pg_file}"; then
-    log "Badhai xa ! Your Postgres dump saved to: ${pg_path}/${pg_file}"
+    log "Completed ! Your Postgres dump saved to: ${pg_path}/${pg_file}"
   else
     error_exit "Failed to perform pg_dump"
   fi
 
 elif [[ "$pg_action" == "restore" ]]; then
-  read -rp "Container name/ID: " pg_container
-  read -rp "Postgres user [default: postgres]: " pg_user
+  read -erp "Container name/ID: " pg_container
+  read -erp "Postgres user [default: postgres]: " pg_user
   pg_user=${pg_user:-postgres}
-  read -rp "Postgres DB name: " pg_db
-  read -rp "Dump file location (full path): " pg_dump_file
+  read -erp "Postgres DB name: " pg_db
+  read -erp "Dump file (full_path/name.sql): " pg_dump_file
 
   [[ -f "$pg_dump_file" ]] || error_exit "Dump file not found at $pg_dump_file"
 
@@ -66,25 +88,36 @@ elif [[ "$pg_action" == "restore" ]]; then
 
   log "Restoring PostgreSQL dump from $pg_dump_file..."
   if cat "$pg_dump_file" | docker exec -i "$pg_container" psql -U "$pg_user" -d "$pg_db"; then
-    log "Badhai xa ! Your PostgreSQL database restored successfully."
+    log "Completed! Your PostgreSQL database restored successfully."
   else
     error_exit "Failed to restore PostgreSQL dump"
   fi
 fi
 
 # ------------------- MONGODB SECTION -------------------
-echo ""
-echo "MongoDB: Do you want to (backup/restore/none)?"
-read -r mongo_action
+while true; do
+  echo "MongoDB: Do you want to (backup/restore/none)?"
+  read -er mongo_action
+  mongo_action=$(echo "$mongo_action" | tr '[:upper:]' '[:lower:]')
+
+  case "$mongo_action" in
+    backup|restore|none)
+      break
+      ;;
+    *)
+      echo "INVALID INPUT !!: '$mongo_action'. Must be 'backup', 'restore', or 'none'. Please try again."
+      ;;
+  esac
+done
 
 if [[ "$mongo_action" == "backup" ]]; then
-  read -rp "Container name/ID: " mongo_container
-  read -rp "Mongo user: " mongo_user
-  read -rp "Mongo password: " mongo_pass
-  read -rp "Mongo DB name: " mongo_db
-  read -rp "Dump file name [default: mongo-${mongo_db}.gz]: " mongo_file
+  read -erp "Container name/ID: " mongo_container
+  read -erp "Mongo user: " mongo_user
+  read -erp "Mongo password: " mongo_pass
+  read -erp "Mongo DB name: " mongo_db
+  read -erp "Dump file name [default: mongo-${mongo_db}.gz]: " mongo_file
   mongo_file=${mongo_file:-mongo-${mongo_db}.gz}
-  read -rp "Dump path (save location): " mongo_path
+  read -erp "Dump path (save location): " mongo_path
 
   mkdir -p "$mongo_path" || error_exit "Failed to create directory $mongo_path"
 
@@ -94,22 +127,22 @@ if [[ "$mongo_action" == "backup" ]]; then
     --db "$mongo_db" -u "$mongo_user" -p "$mongo_pass" \
     --authenticationDatabase admin \
     --gzip --archive > "${mongo_path}/${mongo_file}"; then
-    log "Badhai xa! Your MongoDB dump saved to: ${mongo_path}/${mongo_file}"
+    log "Completed! Your MongoDB dump saved to: ${mongo_path}/${mongo_file}"
   else
     error_exit "Failed to perform mongodump"
   fi
 
 elif [[ "$mongo_action" == "restore" ]]; then
-  read -rp "Container name/ID: " mongo_container
-  read -rp "Mongo user: " mongo_user
-  read -rp "Mongo password: " mongo_pass
-  read -rp "Mongo DB name: " mongo_db
-  read -rp "Dump file location (full path): " mongo_dump_file
+  read -erp "Container name/ID: " mongo_container
+  read -erp "Mongo user: " mongo_user
+  read -erp "Mongo password: " mongo_pass
+  read -erp "Mongo DB name: " mongo_db
+  read -erp "Dump file Name (full_path/file.gz): " mongo_dump_file
 
   [[ -f "$mongo_dump_file" ]] || error_exit "Dump file xaina at $mongo_dump_file"
 
   log "Authenticating to MongoDB and checking DB existence..."
-  if docker exec -i "$mongo_container" mongo admin --username "$mongo_user" --password "$mongo_pass" --eval "db.getMongo().getDBNames().includes('$mongo_db')" | grep -q true; then
+  if docker exec -i "$mongo_container" mongo admin --username "$mongo_user" --password "$mongo_pass" --eval "db.getMongo().getDBNames().indexOf('$mongo_db') >= 0" | grep -q true; then
     log "MongoDB database $mongo_db exists. Dropping it..."
     docker exec -i "$mongo_container" mongo "$mongo_db" --username "$mongo_user" --password "$mongo_pass" --authenticationDatabase admin \
       --eval "db.dropDatabase();" || error_exit "Failed to drop MongoDB database"
@@ -123,11 +156,14 @@ elif [[ "$mongo_action" == "restore" ]]; then
   log "Restoring MongoDB dump..."
   if docker exec -i "$mongo_container" mongorestore --gzip --archive="/tmp/$(basename "$mongo_dump_file")" \
     --db "$mongo_db" --username "$mongo_user" --password "$mongo_pass" --authenticationDatabase admin; then
-    log "Badhai xa! Your MongoDB database restored successfully."
+    log "Completed! Your MongoDB database restored successfully."
+    docker exec -i "$mongo_container" rm "/tmp/$(basename "$mongo_dump_file")" || log "⚠️ Cleanup failed, temp file left in container"
   else
     error_exit "Failed to restore MongoDB dump"
   fi
 fi
 
 echo ""
-log "La sakyo ! Sabai task completed."
+end_time=$(date +%s)
+elapsed=$((end_time - start_time))
+log "Done! Sabai task completed in ${elapsed}s."
